@@ -15,7 +15,8 @@ var (
 	blue, red, white []string
 	black, row       string
 	deck             map[string]int
-	cashCycle        map[string]int
+	blueSet          map[string]int
+	redSet           map[string]int
 )
 
 func trace(s string) (string, time.Time) {
@@ -31,7 +32,7 @@ func un(s string, startTime time.Time) {
 func c(deck []string, str string) (cnt int) {
 	//defer un(trace("c"))
 
-	for _, val := range deck {
+	for _, val := range deck { //
 		if strings.Contains(val, str) {
 			cnt++
 		}
@@ -41,39 +42,60 @@ func c(deck []string, str string) (cnt int) {
 func subset_string(string_val string) (res []string) {
 	//defer un(trace("subset_string"))
 	size := len(string_val) //denotes length of input string
-	for i := 0; i < (1 << uint(size)); i++ {
-		subset := ""
+	step := 1
+	cash := make(map[string]int)
+	for i := 0; i < size; i++ {
 		for j := 0; j < size; j++ {
-			if i&(1<<uint(j)) != 0 {
-				subset += string(string_val[j])
+			if j+step > size {
+				break
+			}
+			str := string_val[j : j+step]
+			if _, ok := cash[str]; !ok {
+				res = append(res, str)
+				cash[str] = 1
 			}
 		}
-		res = append(res, subset)
+		step++
 	}
-	return res[1 : len(res)-1]
+	return res //[1 : len(res)-1]
 }
 
 func calc() {
 	//defer un(trace("calc"))
 
-	var diff int
 	for _, val := range blue {
 		parts := subset_string(val)
+		//fmt.Println(parts)
 		for _, part := range parts {
-			if _, ok := cashCycle[part]; ok {
-				continue
-			} else {
-				cashCycle[part] = 1
-			}
 			if _, ok := deck[part]; ok || strings.Contains(black, part) { // если фраза из колоды или часть черного слова, то пропускаем фразу
 				continue
 			}
-			diff = c(blue, part) - c(red, part)
-			if diff > 0 && diff > bestCnt {
-				bestCnt = diff
-				bestPart = part
+			if _, ok := blueSet[part]; ok {
+				blueSet[part]++
+			} else {
+				blueSet[part] = 1
 			}
-			//fmt.Println(part, diff)
+		}
+	}
+
+	for _, val := range red {
+		parts := subset_string(val)
+		for _, part := range parts {
+			if _, ok := deck[part]; ok || strings.Contains(black, part) { // если фраза из колоды или часть черного слова, то пропускаем фразу
+				continue
+			}
+			if _, ok := redSet[part]; ok {
+				redSet[part]++
+			} else {
+				redSet[part] = 1
+			}
+		}
+	}
+	for key, val := range blueSet {
+		diff := val - redSet[key]
+		if diff > bestCnt {
+			bestCnt = diff
+			bestPart = key
 		}
 	}
 	//проверка черного слова
@@ -83,6 +105,8 @@ func calc() {
 
 // Оповещения
 func main() {
+	//fmt.Println(subset_string("ccbbaa"))
+	//return
 	var (
 		in            *bufio.Reader
 		out           *bufio.Writer
@@ -98,7 +122,9 @@ func main() {
 		red = make([]string, r)
 		white = make([]string, n-b-r-1)
 		deck = make(map[string]int)
-		cashCycle = make(map[string]int)
+		blueSet = make(map[string]int)
+		redSet = make(map[string]int)
+
 		for j := 0; j < n; j++ {
 			if j < b {
 				fmt.Fscan(in, &row)
@@ -117,6 +143,9 @@ func main() {
 		calc()
 		if bestCnt > 0 {
 			fmt.Println(bestPart, bestCnt)
+			//fmt.Println(blueSet)
+			//fmt.Println(redSet)
+
 		} else {
 			fmt.Println("dfsfgh", bestCnt)
 		}
